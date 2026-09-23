@@ -306,7 +306,8 @@
         const App = () => {
             const [revisionStage, setRevisionStage] = useState('一改'); // 一改, 二改 (抽查)
             const [student, setStudent] = useState({ class: getInitialFormClass(), mtl: '', name: '' });
-            const [scores, setScores] = useState({ content: 0, language: 0 });
+            const [scores, setScores] = useState({ content: '', language: '' });
+            const [scoreTouched, setScoreTouched] = useState({ content: false, language: false });
             const [selections, setSelections] = useState({ content: null, language: null });
             
             // Student Marking History Store: { [studentName]: { '一改': { score, content, language, marker }, '二改': { ... } } }
@@ -328,8 +329,8 @@
             const maxLanguage = currentRubrics.language.max;
             const maxTotal = maxContent + maxLanguage;
 
-            const contentTotal = Number(scores.content);
-            const languageTotal = Number(scores.language);
+            const contentTotal = scores.content === '' ? 0 : Number(scores.content);
+            const languageTotal = scores.language === '' ? 0 : Number(scores.language);
             const grandTotal = contentTotal + languageTotal;
 
             // History records for selected student
@@ -469,24 +470,37 @@
             const handleStageChange = (newStage) => {
                 if (newStage === revisionStage) return;
                 setRevisionStage(newStage);
+                clearScores();
             };
 
             const clearScores = () => {
-                setScores({ content: 0, language: 0 });
+                setScores({ content: '', language: '' });
+                setScoreTouched({ content: false, language: false });
                 setSelections({ content: null, language: null });
                 setFeedbackText('');
+                setLastAutoText('');
             };
 
             const handleSelect = (category, itemIndex, selectedScore) => {
                 setSelections(prev => ({ ...prev, [category]: itemIndex }));
                 setScores(prev => ({ ...prev, [category]: selectedScore }));
+                setScoreTouched(prev => ({ ...prev, [category]: true }));
             };
 
             const handleScoreChange = (category, value) => {
-                let num = parseInt(value) || 0;
+                if (value === '') {
+                    setScores(prev => ({ ...prev, [category]: '' }));
+                    setScoreTouched(prev => ({ ...prev, [category]: false }));
+                    setSelections(prev => ({ ...prev, [category]: null }));
+                    return;
+                }
+                let num = Number(value);
+                if (!Number.isFinite(num)) return;
+                if (num < 0) num = 0;
                 if (num > currentRubrics[category].max) num = currentRubrics[category].max;
                 setScores(prev => ({ ...prev, [category]: num }));
-                setSelections(prev => ({ ...prev, [category]: null })); 
+                setScoreTouched(prev => ({ ...prev, [category]: true }));
+                setSelections(prev => ({ ...prev, [category]: null }));
             };
 
             const handleExaminerChange = (e) => {
@@ -541,6 +555,7 @@
                     mtl: '',
                     name: ''
                 });
+                clearScores();
             };
 
             const handleMTClassChange = (e) => {
@@ -549,10 +564,12 @@
                     mtl: e.target.value,
                     name: ''
                 });
+                clearScores();
             };
 
             const handleStudentSelect = (e) => {
                 const selectedName = e.target.value;
+                clearScores();
                 if (!selectedName) {
                     setStudent({
                         class: selectedFormClass,
@@ -572,78 +589,81 @@
                 if (found) setStudent(found);
             };
 
-            const handleSubmitGAS = async () => {
-                if (!student.name || !currentExaminer) {
-                    setDialog({ isOpen: true, title: '提示', message: '请确保填入学生姓名并选择评卷老师。', type: 'alert' });
+            const waitForSubmissionStatus = async (requestId) => {
+                for (let attempt = 0; attempt < 20; attempt++) {
+                    await new Promise(resolve => setTimeout(resolve, 350));
+                    try {
+                        const response = await fetch(`${gasUrl}?action=status&requestId=${encodeURIComponent(requestId)}&_=${Date.now()}`);
+                        const result = await response.json();
+                        if (result && result.pending !== true) return result;
+                    } catch (e) {}
+                }
+                throw new Error('无法确认提交状态。请先查看Google Sheet，避免重复提交。');
+            };
+
+            const handleSubmitGAS = async (forceDuplicate = false) => {
+                if (!student.class || !student.mtl || !student.name || !currentExaminer) {
+                    setDialog({isOpen:true,title:'⚠️ 资料不完整',message:'请先选择级任班、母语班、学生和评卷老师。',type:'alert',onConfirm:null,isSuccess:false});
+                    return;
+                }
+                if (!scoreTouched.content || !scoreTouched.language || scores.content === '' || scores.language === '') {
+                    setDialog({isOpen:true,title:'⚠️ 资料不完整',message:'请完成内容和语文的评分后再提交成绩。',type:'alert',onConfirm:null,isSuccess:false});
                     return;
                 }
 
                 setSubmitStatus('loading');
-                
-                // Update Local Memory with score breakdown and marker
-                const updatedHistory = {
-                    ...studentScoresHistory,
-                    [student.name]: {
-                        ...(studentScoresHistory[student.name] || {}),
-                        [revisionStage]: {
-                            score: grandTotal,
-                            content: contentTotal,
-                            language: languageTotal,
-                            marker: currentExaminer
-                        }
-                    }
-                };
-                setStudentScoresHistory(updatedHistory);
-
+                const requestId = `p5w_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
                 const payload = {
+                    requestId,
                     formClass: student.class,
                     studentName: student.name,
                     marker: currentExaminer,
                     mtClass: student.mtl,
-                    revisionStage: revisionStage,
-                    contentScore: contentTotal,
-                    languageScore: languageTotal,
+                    revisionStage,
+                    contentScore: scores.content,
+                    languageScore: scores.language,
                     totalScore: grandTotal,
                     finalContentScore: finalScoreResolution.content,
                     finalLanguageScore: finalScoreResolution.language,
                     finalTotalScore: finalScoreResolution.total,
                     finalScoreSource: finalScoreResolution.source,
-                    maxTotal: maxTotal,
+                    maxTotal,
                     feedback: feedbackText,
-                    timestamp: new Date().toLocaleString('zh-CN', { hour12: false })
+                    timestamp: new Date().toLocaleString('zh-CN',{hour12:false}),
+                    forceDuplicate
                 };
 
                 try {
-                    const response = await fetch(gasUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload)
-                    });
-                    const responseText = await response.text();
-                    let serverData = null;
-                    try { serverData = JSON.parse(responseText); } catch (e) {}
-                    if (!serverData || !serverData.ok) {
-                        throw new Error(serverData?.error || 'Google Sheet did not confirm the save.');
-                    }
-                    
+                    await fetch(gasUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+                    const result = await waitForSubmissionStatus(requestId);
                     setSubmitStatus('idle');
-                    const serverResult = serverData.result || {};
-                    
-                    let msg = `学生 ${student.name} 的 (${revisionStage}) 写作成绩已保存。\n评卷老师：${currentExaminer}`;
-                    if (serverResult.finalTotalScore !== undefined) {
-                        msg += `\n\nGoogle Sheet 判定结果：${serverResult.finalScoreSource}\n最终得分：内容 ${serverResult.finalContentScore} + 语文 ${serverResult.finalLanguageScore} = ${serverResult.finalTotalScore}分`;
+
+                    if (result && result.duplicate === true && result.saved === false) {
+                        const previous=result.previous||{};
+                        const previousMarker=previous.marker||'未记录';
+                        const previousTotal=(previous.totalScore===''||previous.totalScore==null)?'未记录':`${previous.totalScore}分`;
+                        setDialog({
+                            isOpen:true,
+                            title:'⚠️ 成绩已经提交',
+                            message:`学生：${student.name}\n批改阶段：${revisionStage}\n\n这名学生的${revisionStage}成绩已经提交过。\n上一次评卷老师：${previousMarker}\n上一次总分：${previousTotal}\n\n是否仍要提交这一次的成绩？`,
+                            type:'confirm',
+                            confirmText:'继续提交',
+                            onConfirm:()=>handleSubmitGAS(true),
+                            isSuccess:false
+                        });
+                        return;
                     }
 
-                    setDialog({ 
-                        isOpen: true, 
-                        title: '✅ 提交成功！', 
-                        message: msg, 
-                        type: 'alert',
-                        isSuccess: true 
-                    });
-                } catch (error) {
+                    if (!result || result.ok!==true || result.saved!==true) throw new Error(result?.error||'Google Sheet did not confirm the save.');
+
+                    setStudentScoresHistory(prev=>({...prev,[student.name]:{...(prev[student.name]||{}),[revisionStage]:{score:grandTotal,content:contentTotal,language:languageTotal,marker:currentExaminer}}}));
+                    const serverResult=result.result||{};
+                    let msg=`学生 ${student.name} 的 (${revisionStage}) 写作成绩已保存。\n评卷老师：${currentExaminer}`;
+                    if(serverResult.finalTotalScore!==undefined) msg+=`\n\nGoogle Sheet 判定结果：${serverResult.finalScoreSource}\n最终得分：内容 ${serverResult.finalContentScore} + 语文 ${serverResult.finalLanguageScore} = ${serverResult.finalTotalScore}分`;
+                    setDialog({isOpen:true,title:'✅ 提交成功！',message:msg,type:'alert',onConfirm:null,isSuccess:true});
+                } catch(error) {
                     setSubmitStatus('idle');
-                    setDialog({ isOpen: true, title: '提交失败', message: '网络错误，请重试。', type: 'alert' });
+                    setDialog({isOpen:true,title:'提交失败',message:error?.message||'无法确认提交状态。请先查看Google Sheet，避免重复提交。',type:'alert',onConfirm:null,isSuccess:false});
                 }
             };
 
@@ -753,7 +773,7 @@
                                         }} 
                                         className={`px-8 py-4 text-white font-black text-lg rounded-xl shadow-lg transition-colors w-full ${dialog.isSuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                                     >
-                                        我知道了
+                                        {dialog.type === 'confirm' ? (dialog.confirmText || '确定') : '我知道了'}
                                     </button>
                                 </div>
                             </div>
