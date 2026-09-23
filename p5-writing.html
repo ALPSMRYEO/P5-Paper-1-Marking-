@@ -602,6 +602,9 @@
             };
 
             const handleSubmitGAS = async (forceDuplicate = false) => {
+                // When React calls this directly from onClick, the first argument is the click event.
+                // Only an explicit boolean true should mean "continue duplicate submission".
+                forceDuplicate = (forceDuplicate === true);
                 if (!student.class || !student.mtl || !student.name || !currentExaminer) {
                     setDialog({isOpen:true,title:'⚠️ 资料不完整',message:'请先选择级任班、母语班、学生和评卷老师。',type:'alert',onConfirm:null,isSuccess:false});
                     return;
@@ -1019,7 +1022,7 @@
                                         🖨️ 打印/保存 PDF
                                     </button>
                                     <button 
-                                        onClick={handleSubmitGAS}
+                                        onClick={() => handleSubmitGAS(false)}
                                         disabled={submitStatus === 'loading'}
                                         className={`justify-center text-white px-8 py-3 rounded-xl font-bold text-base shadow-md flex items-center transition-all transform hover:-translate-y-0.5 ${
                                             submitStatus === 'loading' ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'
