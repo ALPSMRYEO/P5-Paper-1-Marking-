@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雅德小学五年级华文写作</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel 用于浏览器内编译 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* 打印特定的样式：隐藏操作界面，只显示反馈单 */
+        @media print {
+            body { background-color: white; font-size: 14pt; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .print-container {
+                border: 2px solid #3b82f6;
+                border-radius: 16px;
+                padding: 50px;
+                margin: 20px;
+                box-shadow: none;
+            }
+        }
+        .print-only { display: none; }
+        
+        /* 隐藏数字输入框的上下箭头 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fefce8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fde047;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #facc15;
+        }
+    </style>
+</head>
+<body class="bg-yellow-50 text-slate-900 font-sans min-h-screen pb-24 text-base">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+
+        // Writing Rubrics based on Primary 6 Marking Scheme (40m total: Content 20m + Language 20m)
+        const writingRubrics = {
+            content: {
+                title: "内容",
+                max: 20,
+                items: [
+                    { level: 1, scores: [17, 18, 19, 20], label: "一（上）", desc: "内容充实；内容切合题旨；内容生动", feedback: "作文内容非常充实生动，切合题旨，能吸引读者，写得太出色了！" },
+                    { level: 2, scores: [13, 14, 15, 16], label: "二（中上）", desc: "内容相当充实；内容绝大部分切合题旨；内容相当生动", feedback: "作文内容相当充实生动，绝大部分切合题旨，整体立意明确。" },
+                    { level: 3, scores: [9, 10, 11, 12], label: "三（中）", desc: "内容还算充实；内容还算切合题旨；内容还算生动", feedback: "文章内容还算充实，基本切题。如果细节能描写得更生动，文章会更加引人入胜。" },
+                    { level: 4, scores: [5, 6, 7, 8], label: "四（中下）", desc: "内容不足；内容不大切合题旨；内容空洞", feedback: "内容略显不足，部分情节不太切合题旨。下次尝试多加一些细节描写和心理活动，充实文章内容。" },
+                    { level: 5, scores: [1, 2, 3, 4], label: "五（下）", desc: "内容非常不足；内容不切合题旨；内容杂乱", feedback: "作文内容比较偏题或杂乱，缺乏主要情节。写文章前要先好好审题，列好大纲再动笔哦。" }
+                ]
+            },
+            language: {
+                title: "语文",
+                max: 20,
+                items: [
+                    { level: 1, scores: [17, 18, 19, 20], label: "一（上）", desc: "语句通顺，汉字及标点符号运用正确；句式多样化；词汇丰富；结构严谨，段落分明", feedback: "文笔流畅优美，词汇丰富，句式多变，结构严谨且段落分明，标点与错别字极少，非常优秀！" },
+                    { level: 2, scores: [13, 14, 15, 16], label: "二（中上）", desc: "语句绝大部分通顺，汉字及标点少许错误；句式有变化；词汇相当丰富；结构严谨，段落相当分明", feedback: "语句通顺自然，词汇相当丰富，结构分明。注意少许错别字和标点的规范使用。" },
+                    { level: 3, scores: [9, 10, 11, 12], label: "三（中）", desc: "语句还算通顺，错别字及标点错误不少；句式变化少；词汇有限；结构还算完整", feedback: "句子基本通顺，结构完整。不过词汇量还需加强，写完后记得多检查错别字和标点符号。" },
+                    { level: 4, scores: [5, 6, 7, 8], label: "四（中下）", desc: "语句欠通顺，错别字及标点错误多；句式无变化；词汇贫乏；结构不完整", feedback: "语句不够通顺，病句和错别字较多。平时多阅读优美范文，练习用正确的句子表达想法。" },
+                    { level: 5, scores: [1, 2, 3, 4], label: "五（下）", desc: "语句完全不通顺，错别字极多；句子结构不完整；词汇非常贫乏；结构杂乱无章", feedback: "表达上遇到较大困难，句子不完整且错别字多。建议先从写好每一个基础句子开始，加油！" }
+                ]
+            }
+        };
+
+        const examinersList = [
+            'CHEN JINGJING', 'CHIA AI TIAN', 'CHONG SHI YAN', 'DONG JINGJING', 
+            'FOO SIEW YEE', 'HAO XIAOXING', 'HU YULAN', 'HUANG YAO TIAN', 
+            'LIM LEE CHOON', 'LIN YUSHI', 'PENG YUANZHEN', 'POH YEU PEI', 
+            'SU WAN JU', 'TAN HUI JUAI', 'TEY SIEW LENG', 'YEO WEE KIANG', 
+            'ZHENG LIDAN'
+        ];
+
+        // P5 Roster ported from P5 Oral tool
+        const p5Roster = [
+            // 5CL1 (Standard)
+            { class: 'P5-H', mtl: '5CL1', name: 'CHAN ZHI YANG' },
+            { class: 'P5-H', mtl: '5CL1', name: 'CHLOE ONG XIN JING' },
+            { class: 'P5-H', mtl: '5CL1', name: 'FU YANYI' },
+            { class: 'P5-H', mtl: '5CL1', name: 'GENG RUIKANG' },
+            { class: 'P5-H', mtl: '5CL1', name: 'GRACE TANG XUAN YING' },
+            { class: 'P5-H', mtl: '5CL1', name: 'HO YU HANG, CAYDEN' },
+            { class: 'P5-H', mtl: '5CL1', name: 'LEE HONG EN' },
+            { class: 'P5-H', mtl: '5CL1', name: 'LIM YIN EN LEILA' },
+            { class: 'P5-H', mtl: '5CL1', name: 'QIN XIYA' },
+            { class: 'P5-H', mtl: '5CL1', name: 'SAMANTHA LEE QI SHAN' },
+            { class: 'P5-H', mtl: '5CL1', name: 'SOONG XIN HUI, EMMA' },
+            { class: 'P5-H', mtl: '5CL1', name: 'SOPHIE REBECCA TAN ZE HUI' },
+            { class: 'P5-H', mtl: '5CL1', name: 'TAN SU HUI JESSICA' },
+            { class: 'P5-H', mtl: '5CL1', name: 'TAY HUI EN, ASHLYN' },
+            { class: 'P5-H', mtl: '5CL1', name: 'TOH YU XIN, IRIS' },
+            { class: 'P5-H', mtl: '5CL1', name: 'ZHOU LINGLU' },
+            { class: 'P5-I', mtl: '5CL1', name: 'ADELE TIEW TING XUAN' },
+            { class: 'P5-I', mtl: '5CL1', name: 'ASHTON FOO HONG YU' },
+            { class: 'P5-I', mtl: '5CL1', name: 'CHAN YENN CHENG' },
+            { class: 'P5-I', mtl: '5CL1', name: 'CHIA XILEI VALERIE' },
+            { class: 'P5-I', mtl: '5CL1', name: 'COCO ZHANG XIAOKE' },
+            { class: 'P5-I', mtl: '5CL1', name: 'FOK XIANG YU OWEN' },
+            { class: 'P5-I', mtl: '5CL1', name: 'ISAAC TAN JINGHAN' },
+            { class: 'P5-I', mtl: '5CL1', name: 'LEE JING ZI' },
+            { class: 'P5-I', mtl: '5CL1', name: 'LIN, OLIVIA JINGXUAN' },
+            { class: 'P5-I', mtl: '5CL1', name: 'TAN ENG TENG, CHARLOTTE' },
+            { class: 'P5-I', mtl: '5CL1', name: 'TAN HONG HAO' },
+            { class: 'P5-I', mtl: '5CL1', name: 'ZEYA SITHU JUN BO' },
+            { class: 'P5-RS', mtl: '5CL1', name: 'JUAY IAN' },
+            { class: 'P5-RS', mtl: '5CL1', name: 'KYLER POH KY-LE' },
+            { class: 'P5-RS', mtl: '5CL1', name: 'LEW YA WEI' },
+            { class: 'P5-RS', mtl: '5CL1', name: 'LIN YICHEN' },
+            { class: 'P5-RS', mtl: '5CL1', name: 'TAN CADEN JINYANG' },
+            { class: 'P5-RS', mtl: '5CL1', name: 'YIP ZI XUAN' },
+            { class: 'P5-RS', mtl: '5CL1', name: 'ZOE YEO LE LE' },
+
+            // 5CL2 (Standard)
+            { class: 'P5-C', mtl: '5CL2', name: 'ALIYA PORTENLAENGER' },
+            { class: 'P5-C', mtl: '5CL2', name: 'WAYNE LEE' },
+            { class: 'P5-C', mtl: '5CL2', name: 'ZENICE THEN YING XUAN' },
+            { class: 'P5-E', mtl: '5CL2', name: 'DAWN LEONG XIN WEN' },
+            { class: 'P5-E', mtl: '5CL2', name: 'YANG CHENFEI' },
+            { class: 'P5-H', mtl: '5CL2', name: 'CHARLENE CHIA GIA HEE' },
+            { class: 'P5-H', mtl: '5CL2', name: 'IAN ONG ZHI HONG' },
+            { class: 'P5-H', mtl: '5CL2', name: 'LIN JUN FUNG, AARON' },
+            { class: 'P5-H', mtl: '5CL2', name: 'RYAN NG YI SHENG' },
+            { class: 'P5-H', mtl: '5CL2', name: 'TEO EN ZHI ASAPH' },
+            { class: 'P5-H', mtl: '5CL2', name: 'ZHENG HAN AZIEL' },
+            { class: 'P5-I', mtl: '5CL2', name: 'ASHLEY LIN NANXUAN' },
+            { class: 'P5-I', mtl: '5CL2', name: 'CHEN ZE' },
+            { class: 'P5-I', mtl: '5CL2', name: 'JAMES LIM ZUN SHENG' },
+            { class: 'P5-I', mtl: '5CL2', name: 'KAN SENRI' },
+            { class: 'P5-I', mtl: '5CL2', name: 'LEONG YIN FUNG' },
+            { class: 'P5-I', mtl: '5CL2', name: 'TITUS LOH CHEE LOONG' },
+            { class: 'P5-I', mtl: '5CL2', name: 'YANG HONGYUE' },
+            { class: 'P5-RS', mtl: '5CL2', name: 'CHEE XUAN HUI' },
+            { class: 'P5-RS', mtl: '5CL2', name: 'CHIA XIN XUAN ASHLYN' },
+            { class: 'P5-RS', mtl: '5CL2', name: 'CHLOE YAN LE QI' },
+            { class: 'P5-RS', mtl: '5CL2', name: 'OLIVIA TAN' },
+            { class: 'P5-RS', mtl: '5CL2', name: 'ONG JIA FENG JACOB' },
+            { class: 'P5-RS', mtl: '5CL2', name: 'OWEN TAN' },
+            { class: 'P5-RS', mtl: '5CL2', name: 'TONG ZHI KAI' },
+            { class: 'P5-RS', mtl: '5CL2', name: 'ZAK FONG CHI NGAI' },
+
+            // 5CL3 (Standard)
+            { class: 'P5-C', mtl: '5CL3', name: 'AMELIA ONG HUI TING' },
+            { class: 'P5-C', mtl: '5CL3', name: 'CHAN YAN REN, DAMIEN' },
+            { class: 'P5-C', mtl: '5CL3', name: 'DANELLE GOH LIN YU' },
+            { class: 'P5-C', mtl: '5CL3', name: 'LEE XUE LIN AUDRIC' },
+            { class: 'P5-C', mtl: '5CL3', name: 'LIU XING CHEN' },
+            { class: 'P5-C', mtl: '5CL3', name: 'RYNN SIOW YI XIN' },
+            { class: 'P5-E', mtl: '5CL3', name: 'CHAI BO EN KALEB' },
+            { class: 'P5-E', mtl: '5CL3', name: 'CHIN HNG YING ADELE' },
+            { class: 'P5-E', mtl: '5CL3', name: 'EDEN CHEN JINYANG' },
+            { class: 'P5-E', mtl: '5CL3', name: 'FU YUELIN, NICHOLAS' },
+            { class: 'P5-E', mtl: '5CL3', name: 'LEE YANG YI' },
+            { class: 'P5-E', mtl: '5CL3', name: 'VERA LIM YU EN' },
+            { class: 'P5-E', mtl: '5CL3', name: 'XIONG YILIN SELENE' },
+            { class: 'P5-E', mtl: '5CL3', name: 'YAU XIN YI LIVIA' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'CALLUM CHIN TZE HIN' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'COOPER GUO' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'ETHAN TAN' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'GEMMA TUN CHENG EN YU' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'GERALDINE LEE YIN XI' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'GWEN OH YU XUAN' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'HAN QIN LIN NICOLE' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'HO RUI NING KEIRA' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'HO YI KAI' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'JEROME JAP' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'JERRIC SEOW JING HENG' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'KIARA GALETTI' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'LIM YI XUAN JOVIN' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'OEI ABIGAIL' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'SHANA TEO YIN' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'SHANE KANG' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'TEE HAO YUAN ZACHARY' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'TOH YAN RUI RYAN' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'WOO JIA LE CODY' },
+            { class: 'P5-RS', mtl: '5CL3', name: 'YAP YHEW SOOND DAVID' },
+
+            // 5CL4 (Standard)
+            { class: 'P5-H', mtl: '5CL4', name: 'ADA MAK' },
+            { class: 'P5-H', mtl: '5CL4', name: 'ARIA ELENA FLOROIU' },
+            { class: 'P5-H', mtl: '5CL4', name: 'CHUA WOO KIAT JUSTAN' },
+            { class: 'P5-H', mtl: '5CL4', name: 'CLARICE CHIAM XIN MIN' },
+            { class: 'P5-H', mtl: '5CL4', name: 'EE RONG EN ESHER' },
+            { class: 'P5-H', mtl: '5CL4', name: 'HO ON HOI, MATTHIAS' },
+            { class: 'P5-H', mtl: '5CL4', name: 'LEONG MIN XUAN KAYLEY' },
+            { class: 'P5-H', mtl: '5CL4', name: 'LIM JIA JET' },
+            { class: 'P5-H', mtl: '5CL4', name: 'MILAN GUNALAN' },
+            { class: 'P5-H', mtl: '5CL4', name: 'TAN KAI XUAN ASHER' },
+            { class: 'P5-H', mtl: '5CL4', name: 'TAN KE YU EVAN' },
+            { class: 'P5-H', mtl: '5CL4', name: 'WONG SHIYA ANGELA' },
+            { class: 'P5-I', mtl: '5CL4', name: 'CHERRIN LOO YUN XI' },
+            { class: 'P5-I', mtl: '5CL4', name: 'CHUT KAI JIE DAMIEN' },
+            { class: 'P5-I', mtl: '5CL4', name: 'GARETH LEE YI JING' },
+            { class: 'P5-I', mtl: '5CL4', name: 'JUBILEE TAN LE XIN' },
+            { class: 'P5-I', mtl: '5CL4', name: 'KENZO SEBASTIAN WIDJAJA' },
+            { class: 'P5-I', mtl: '5CL4', name: 'KIM SI ON' },
+            { class: 'P5-I', mtl: '5CL4', name: 'LEANNE SOON LI HUA' },
+            { class: 'P5-I', mtl: '5CL4', name: 'LEE KAH HIONG' },
+            { class: 'P5-I', mtl: '5CL4', name: 'LIM EN QI, ZOANN' },
+            { class: 'P5-I', mtl: '5CL4', name: 'NATALIE POH ZHUO YING' },
+            { class: 'P5-I', mtl: '5CL4', name: 'SOO WEN QI' },
+            { class: 'P5-I', mtl: '5CL4', name: 'SOPHIE POH ZHUO XUAN' },
+            { class: 'P5-I', mtl: '5CL4', name: 'WONG PENG YI MICHAEL' },
+            { class: 'P5-O', mtl: '5CL4', name: 'CHUA CHEONG YONG' },
+            { class: 'P5-O', mtl: '5CL4', name: 'HONG RAEAH' },
+            { class: 'P5-O', mtl: '5CL4', name: 'TANG KAI QI' },
+            { class: 'P5-O', mtl: '5CL4', name: 'THAM JUN DA' },
+            { class: 'P5-O', mtl: '5CL4', name: 'TOH ZHENG YU' },
+            { class: 'P5-O', mtl: '5CL4', name: 'YEO KAI WEN DARREN' },
+
+            // 5CL5 (Standard)
+            { class: 'P5-C', mtl: '5CL5', name: 'HO HUI XUAN EMILY' },
+            { class: 'P5-C', mtl: '5CL5', name: 'JOSHUA ONG' },
+            { class: 'P5-C', mtl: '5CL5', name: 'MICHAEL HIROKI GOH ZHI LIM' },
+            { class: 'P5-C', mtl: '5CL5', name: 'NG JING KAI, SHANE' },
+            { class: 'P5-C', mtl: '5CL5', name: 'SEAH YU EN, ISABELLE' },
+            { class: 'P5-C', mtl: '5CL5', name: 'SEETOH YU' },
+            { class: 'P5-C', mtl: '5CL5', name: 'THENG JUN JIE JAYDEN' },
+            { class: 'P5-C', mtl: '5CL5', name: 'TRISTAN NGO JUN DE' },
+            { class: 'P5-E', mtl: '5CL5', name: 'ELIAS ECHEVERRI SOLANO' },
+            { class: 'P5-E', mtl: '5CL5', name: 'ELIJAH PAU SIAN TUANG' },
+            { class: 'P5-E', mtl: '5CL5', name: 'JAIRUS TENG KANG HAO' },
+            { class: 'P5-E', mtl: '5CL5', name: 'JOSHUA LEONG YONG YI' },
+            { class: 'P5-E', mtl: '5CL5', name: 'LEE SHI CEN' },
+            { class: 'P5-E', mtl: '5CL5', name: 'LIM XIN YI' },
+            { class: 'P5-E', mtl: '5CL5', name: 'LIW TAT MAN HAU YEONG EDWARD' },
+            { class: 'P5-E', mtl: '5CL5', name: 'REANNE LIM' },
+            { class: 'P5-E', mtl: '5CL5', name: 'REUBEN VALEN TAN' },
+            { class: 'P5-E', mtl: '5CL5', name: 'TYTUS CHEONG JYU THY' },
+            { class: 'P5-E', mtl: '5CL5', name: 'YU ENQING' },
+            { class: 'P5-RS', mtl: '5CL5', name: 'CHUAH SUH-RIN' },
+
+            // 5CL6 (Standard)
+            { class: 'P5-H', mtl: '5CL6', name: 'TEO LUCAS' },
+            { class: 'P5-H', mtl: '5CL6', name: 'TYLER NG YU LIN' },
+            { class: 'P5-I', mtl: '5CL6', name: 'CHONG HAN JIE CEPHAS' },
+            { class: 'P5-I', mtl: '5CL6', name: 'KAYSON CHEW KAI SHEN' },
+            { class: 'P5-I', mtl: '5CL6', name: 'LOUISA MAE GHEORGHIU' },
+            { class: 'P5-O', mtl: '5CL6', name: 'CHEONG RUI EN ANASTASIA' },
+            { class: 'P5-O', mtl: '5CL6', name: 'CLAIRE CHENG YING XUAN' },
+            { class: 'P5-O', mtl: '5CL6', name: 'DYLAN YAN LE BIN' },
+            { class: 'P5-O', mtl: '5CL6', name: 'JAVIN SU JIE' },
+            { class: 'P5-O', mtl: '5CL6', name: 'KATERI MYAT NOE TUN' },
+            { class: 'P5-O', mtl: '5CL6', name: 'LUCAS PUA' },
+            { class: 'P5-O', mtl: '5CL6', name: 'MATTHIAS ONG' },
+            { class: 'P5-O', mtl: '5CL6', name: 'MICHELLE TAN YING XIAN' },
+            { class: 'P5-O', mtl: '5CL6', name: 'TAN YU XIN, ISABELLA' },
+            { class: 'P5-O', mtl: '5CL6', name: 'YEO FENG KAI, KELLAN' },
+            { class: 'P5-O', mtl: '5CL6', name: 'WON TIAN ZE' },
+            { class: 'P5-O', mtl: '5CL6', name: 'NGUYEN KASSIE' },
+
+            // 5FCL7 (Foundation ONLY)
+            { class: 'P5-C', mtl: '5FCL7', name: 'ADAM ELIJAH HUGO KOH WEE BOON' },
+            { class: 'P5-C', mtl: '5FCL7', name: 'AIDEN NG JIA LE' },
+            { class: 'P5-C', mtl: '5FCL7', name: 'DRACO LUCIEN TAN' },
+            { class: 'P5-C', mtl: '5FCL7', name: 'EZEKIEL CHAN RUI ZHE' },
+            { class: 'P5-C', mtl: '5FCL7', name: 'SWA XIAO DONG SHELDON' },
+            { class: 'P5-E', mtl: '5FCL7', name: 'JOYEL TAN' },
+            { class: 'P5-O', mtl: '5FCL7', name: 'JAYLENE SIM JIAXIN' },
+            { class: 'P5-O', mtl: '5FCL7', name: 'ZACHARIAH GABRIEL LIM YONG KWANG' }
+        ];
+
+        // Helper to find level (1 to 5) for a given score
+        const getBandLevel = (category, score) => {
+            const items = writingRubrics[category].items;
+            for (let item of items) {
+                if (item.scores.includes(score)) return item.level;
+            }
+            return 5;
+        };
+
+        const App = () => {
+            const [revisionStage, setRevisionStage] = useState('一改'); // 一改, 二改 (抽查)
+            const [student, setStudent] = useState({ class: '', mtl: '', name: '' });
+            const [scores, setScores] = useState({ content: 0, language: 0 });
+            const [selections, setSelections] = useState({ content: null, language: null });
+            
+            // Student Marking History Store: { [studentName]: { '一改': { score, content, language, marker }, '二改': { ... } } }
+            const [studentScoresHistory, setStudentScoresHistory] = useState({});
+
+            const [feedbackText, setFeedbackText] = useState('');
+            const [lastAutoText, setLastAutoText] = useState('');
+
+            // Paste the deployed P5 Writing Apps Script Web App URL below
+            const gasUrl = 'https://script.google.com/macros/s/AKfycbxJYjpfNnETRS9Jji1OXabU_-97Hwy0JwkJLJm7QJ6A_mJ9Kacv0c_KnfjQ4IInyjVE/exec';
+            const [submitStatus, setSubmitStatus] = useState('idle');
+            
+            const [currentExaminer, setCurrentExaminer] = useState('');
+            const [dialog, setDialog] = useState({ isOpen: false, title: '', message: '', type: 'alert', onConfirm: null, isSuccess: false });
+
+            const currentRubrics = writingRubrics;
+
+            const maxContent = currentRubrics.content.max;
+            const maxLanguage = currentRubrics.language.max;
+            const maxTotal = maxContent + maxLanguage;
+
+            const contentTotal = Number(scores.content);
+            const languageTotal = Number(scores.language);
+            const grandTotal = contentTotal + languageTotal;
+
+            // History records for selected student
+            const currentStudentHistory = useMemo(() => {
+                if (!student.name) return {};
+                return studentScoresHistory[student.name] || {};
+            }, [student.name, studentScoresHistory]);
+
+            const record1 = currentStudentHistory['一改'];
+            const record2 = currentStudentHistory['二改'];
+
+            const score1 = record1?.score;
+            const score2 = record2?.score;
+
+            const scoreDiff = useMemo(() => {
+                if (score1 !== undefined && score2 !== undefined) {
+                    return Math.abs(score1 - score2);
+                }
+                if (score1 !== undefined && revisionStage === '二改') {
+                    return Math.abs(score1 - grandTotal);
+                }
+                return null;
+            }, [score1, score2, grandTotal, revisionStage]);
+
+            // Band Check Logic for Variance Rules
+            const isCrossBand = useMemo(() => {
+                if (!record1) return false;
+                const c1Band = getBandLevel('content', record1.content);
+                const c2Band = getBandLevel('content', revisionStage === '二改' ? contentTotal : (record2?.content || 0));
+                
+                const l1Band = getBandLevel('language', record1.language);
+                const l2Band = getBandLevel('language', revisionStage === '二改' ? languageTotal : (record2?.language || 0));
+
+                return (c1Band !== c2Band) || (l1Band !== l2Band);
+            }, [record1, record2, contentTotal, languageTotal, revisionStage]);
+
+            // Final Score Calculation Logic according to Rules
+            const finalScoreResolution = useMemo(() => {
+                if (!record1) {
+                    return { 
+                        content: contentTotal, 
+                        language: languageTotal, 
+                        total: grandTotal, 
+                        source: '一改 (尚未二改抽查)' 
+                    };
+                }
+
+                const currentScore2 = revisionStage === '二改' ? grandTotal : (score2 !== undefined ? score2 : null);
+                const currentContent2 = revisionStage === '二改' ? contentTotal : (record2?.content !== undefined ? record2.content : null);
+                const currentLanguage2 = revisionStage === '二改' ? languageTotal : (record2?.language !== undefined ? record2.language : null);
+
+                if (currentScore2 === null) {
+                    return { 
+                        content: record1.content, 
+                        language: record1.language, 
+                        total: record1.score, 
+                        source: '一改 (尚未二改抽查)' 
+                    };
+                }
+
+                const diff = Math.abs(record1.score - currentScore2);
+
+                // Rule 1: Variance <= 3 Marks and NO Cross-Band -> Retain 1st Marking Score
+                if (diff <= 3 && !isCrossBand) {
+                    return { 
+                        content: record1.content, 
+                        language: record1.language, 
+                        total: record1.score, 
+                        source: `一改 (两改分差 ${diff}分 ≤ 3分且未跨等，保持一改成绩)` 
+                    };
+                }
+
+                // Rule 2: Variance <= 3 Marks WITH Cross-Band -> Take Reference from 2nd Marking
+                if (diff <= 3 && isCrossBand) {
+                    return { 
+                        content: currentContent2, 
+                        language: currentLanguage2, 
+                        total: currentScore2, 
+                        source: `二改 (两改分差 ${diff}分 ≤ 3分，但出现跨等，采用二改标准)` 
+                    };
+                }
+
+                // Rule 3: Variance > 3 Marks -> Take Reference from 2nd Marking
+                return { 
+                    content: currentContent2, 
+                    language: currentLanguage2, 
+                    total: currentScore2, 
+                    source: `二改 (两改分差 ${diff}分 > 3分，采用二改标准)` 
+                };
+            }, [record1, record2, score2, contentTotal, languageTotal, grandTotal, revisionStage, isCrossBand]);
+
+            // Helper to match score with rubric feedback
+            const getRubricFeedback = (category, targetScore) => {
+                const items = currentRubrics[category].items;
+                for (let item of items) {
+                    if (item.scores.includes(targetScore)) return item.feedback;
+                }
+                return "";
+            };
+
+            const generatedContentFeedback = useMemo(() => {
+                if (revisionStage === '二改' || record2) {
+                    return getRubricFeedback('content', finalScoreResolution.content);
+                }
+                if (selections.content !== null) return currentRubrics.content.items[selections.content].feedback;
+                return getRubricFeedback('content', contentTotal);
+            }, [revisionStage, record2, finalScoreResolution.content, selections.content, contentTotal, currentRubrics]);
+
+            const generatedLanguageFeedback = useMemo(() => {
+                if (revisionStage === '二改' || record2) {
+                    return getRubricFeedback('language', finalScoreResolution.language);
+                }
+                if (selections.language !== null) return currentRubrics.language.items[selections.language].feedback;
+                return getRubricFeedback('language', languageTotal);
+            }, [revisionStage, record2, finalScoreResolution.language, selections.language, languageTotal, currentRubrics]);
+
+            const generatedFeedback = useMemo(() => {
+                let parts = [];
+                if (generatedContentFeedback) parts.push(`【内容】\n${generatedContentFeedback}`);
+                if (generatedLanguageFeedback) parts.push(`【语文】\n${generatedLanguageFeedback}`);
+                return parts.join("\n\n");
+            }, [generatedContentFeedback, generatedLanguageFeedback]);
+
+            useEffect(() => {
+                setFeedbackText((currentText) => {
+                    if (!currentText || currentText === lastAutoText) {
+                        return generatedFeedback;
+                    }
+                    if (lastAutoText && currentText.includes(lastAutoText)) {
+                        return currentText.replace(lastAutoText, generatedFeedback);
+                    }
+                    return generatedFeedback;
+                });
+                setLastAutoText(generatedFeedback);
+            }, [generatedFeedback]);
+
+            const handleStageChange = (newStage) => {
+                if (newStage === revisionStage) return;
+                setRevisionStage(newStage);
+            };
+
+            const clearScores = () => {
+                setScores({ content: 0, language: 0 });
+                setSelections({ content: null, language: null });
+                setFeedbackText('');
+            };
+
+            const handleSelect = (category, itemIndex, selectedScore) => {
+                setSelections(prev => ({ ...prev, [category]: itemIndex }));
+                setScores(prev => ({ ...prev, [category]: selectedScore }));
+            };
+
+            const handleScoreChange = (category, value) => {
+                let num = parseInt(value) || 0;
+                if (num > currentRubrics[category].max) num = currentRubrics[category].max;
+                setScores(prev => ({ ...prev, [category]: num }));
+                setSelections(prev => ({ ...prev, [category]: null })); 
+            };
+
+            const handleExaminerChange = (e) => {
+                const val = e.target.value;
+                setCurrentExaminer(val);
+                localStorage.setItem('writingExamExaminer', val);
+            };
+
+            const handlePrint = () => {
+                const originalTitle = document.title;
+                const fileName = student.name ? `${student.class}_${student.name}_华文写作反馈_${revisionStage}` : `华文写作反馈单_${student.class}`;
+                document.title = fileName;
+                window.print();
+                setTimeout(() => { document.title = originalTitle; }, 500);
+            };
+
+            const [selectedFormClass, setSelectedFormClass] = useState('');
+
+            const availableFormClasses = useMemo(() => {
+                return Array.from(
+                    new Set(p5Roster.map(s => s.class).filter(Boolean))
+                ).sort();
+            }, []);
+
+            // MT classes available within the selected Form Class.
+            const availableMTClasses = useMemo(() => {
+                if (!selectedFormClass) return [];
+                return Array.from(
+                    new Set(
+                        p5Roster
+                            .filter(s => s.class === selectedFormClass)
+                            .map(s => s.mtl)
+                            .filter(Boolean)
+                    )
+                ).sort();
+            }, [selectedFormClass]);
+
+            // Students are filtered by both Form Class and selected MT Class.
+            const filteredStudents = useMemo(() => {
+                if (!selectedFormClass || !student.mtl) return [];
+                return p5Roster.filter(
+                    s => s.class === selectedFormClass && s.mtl === student.mtl
+                );
+            }, [selectedFormClass, student.mtl]);
+
+            const handleFormClassChange = (e) => {
+                const formClass = e.target.value;
+                setSelectedFormClass(formClass);
+                setStudent({
+                    class: formClass,
+                    mtl: '',
+                    name: ''
+                });
+            };
+
+            const handleMTClassChange = (e) => {
+                setStudent({
+                    class: selectedFormClass,
+                    mtl: e.target.value,
+                    name: ''
+                });
+            };
+
+            const handleStudentSelect = (e) => {
+                const selectedName = e.target.value;
+                if (!selectedName) {
+                    setStudent({
+                        class: selectedFormClass,
+                        mtl: student.mtl,
+                        name: ''
+                    });
+                    return;
+                }
+
+                const found = p5Roster.find(
+                    s =>
+                        s.class === selectedFormClass &&
+                        s.mtl === student.mtl &&
+                        s.name === selectedName
+                );
+
+                if (found) setStudent(found);
+            };
+
+            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            const waitForSubmissionStatus = async (requestId) => {
+                for (let attempt = 0; attempt < 30; attempt++) {
+                    try {
+                        const statusUrl =
+                            `${gasUrl}?action=status&requestId=${encodeURIComponent(requestId)}&_=${Date.now()}`;
+                        const response = await fetch(statusUrl, {
+                            method: 'GET',
+                            cache: 'no-store'
+                        });
+                        const data = await response.json();
+                        if (data && data.pending !== true) return data;
+                    } catch (e) {
+                        // Retry briefly; Apps Script can take a moment to publish the result.
+                    }
+                    await sleep(500);
+                }
+                throw new Error('Unable to confirm submission status.');
+            };
+
+            const handleSubmitGAS = async (forceDuplicate = false) => {
+                // HTML-side duplicate guard:
+                // after a successful first submission in this session, a second
+                // submission for the same student + same marking stage MUST ask first.
+                const previousLocal =
+                    studentScoresHistory?.[student.name]?.[revisionStage];
+
+                if (!forceDuplicate && previousLocal) {
+                    setDialog({
+                        isOpen: true,
+                        title: '⚠️ 成绩已经提交',
+                        message:
+                            `学生：${student.name}\n` +
+                            `批改阶段：${revisionStage}\n\n` +
+                            `这名学生的${revisionStage}成绩已经提交过。\n` +
+                            `上一次评卷老师：${previousLocal.marker || '未记录'}\n` +
+                            `上一次总分：${previousLocal.score ?? '未记录'}分\n\n` +
+                            `是否仍要提交这一次的成绩？`,
+                        type: 'confirm',
+                        confirmText: '继续提交',
+                        onConfirm: () => handleSubmitGAS(true)
+                    });
+                    return;
+                }
+
+                if (!student.name || !currentExaminer) {
+                    setDialog({
+                        isOpen: true,
+                        title: '提示',
+                        message: '请确保已选择学生和评卷老师。',
+                        type: 'alert'
+                    });
+                    return;
+                }
+
+                setSubmitStatus('loading');
+
+                const requestId =
+                    `p5w_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+                const payload = {
+                    requestId,
+                    formClass: student.class,
+                    mtClass: student.mtl,
+                    studentName: student.name,
+                    revisionStage,
+                    marker: currentExaminer,
+                    contentScore: contentTotal,
+                    languageScore: languageTotal,
+                    totalScore: grandTotal,
+                    finalContentScore: finalScoreResolution.content,
+                    finalLanguageScore: finalScoreResolution.language,
+                    finalTotalScore: finalScoreResolution.total,
+                    finalScoreSource: finalScoreResolution.source,
+                    maxTotal,
+                    feedback: feedbackText,
+                    timestamp: new Date().toLocaleString('zh-CN', { hour12: false }),
+                    forceDuplicate
+                };
+
+                try {
+                    // One submission request only. The server checks duplicates BEFORE saving.
+                    await fetch(gasUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await waitForSubmissionStatus(requestId);
+                    setSubmitStatus('idle');
+
+                    // Existing same student + same stage: nothing has been saved yet.
+                    if (result && result.duplicate === true && result.saved === false) {
+                        const previous = result.previous || {};
+                        const previousMarker = previous.marker || '未记录';
+                        const previousTime = previous.timestamp || '未记录';
+                        const previousTotal =
+                            previous.totalScore === '' || previous.totalScore == null
+                                ? '未记录'
+                                : `${previous.totalScore}分`;
+
+                        setDialog({
+                            isOpen: true,
+                            title: '⚠️ 成绩已经提交',
+                            message:
+                                `学生：${student.name}\n` +
+                                `批改阶段：${revisionStage}\n\n` +
+                                `这名学生的${revisionStage}成绩已经提交过。\n` +
+                                `上一次评卷老师：${previousMarker}\n` +
+                                `上一次总分：${previousTotal}\n` +
+                                `上一次提交时间：${previousTime}\n\n` +
+                                `是否仍要提交这一次的成绩？`,
+                            type: 'confirm',
+                            confirmText: '继续提交',
+                            onConfirm: () => handleSubmitGAS(true)
+                        });
+                        return;
+                    }
+
+                    if (!result || result.ok !== true || result.saved !== true) {
+                        throw new Error((result && result.error) || 'Submission was not confirmed.');
+                    }
+
+                    const updatedHistory = {
+                        ...studentScoresHistory,
+                        [student.name]: {
+                            ...(studentScoresHistory[student.name] || {}),
+                            [revisionStage]: {
+                                score: grandTotal,
+                                content: contentTotal,
+                                language: languageTotal,
+                                marker: currentExaminer
+                            }
+                        }
+                    };
+                    setStudentScoresHistory(updatedHistory);
+
+                    setDialog({
+                        isOpen: true,
+                        title: '✅ 提交成功！',
+                        message:
+                            `学生 ${student.name} 的 (${revisionStage}) 写作成绩已保存。\n` +
+                            `评卷老师：${currentExaminer}`,
+                        type: 'alert',
+                        isSuccess: true
+                    });
+
+                } catch (error) {
+                    setSubmitStatus('idle');
+                    setDialog({
+                        isOpen: true,
+                        title: '提交状态未确认',
+                        message:
+                            '系统暂时无法确认这次提交的状态。请先查看 Google Sheet 是否已有新记录，再决定是否重试，以免重复提交。',
+                        type: 'alert'
+                    });
+                }
+            };
+
+            const resetForm = () => {
+                setDialog({
+                    isOpen: true,
+                    title: '确认清空',
+                    message: '确定要清空当前分数，准备给下一位学生打分吗？',
+                    type: 'confirm',
+                    onConfirm: clearScores
+                });
+            };
+
+            const renderRubricRow = (categoryKey, rubricObj) => (
+                <div className="mb-10 bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200 no-print">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <h3 className="font-bold text-xl md:text-2xl text-slate-800">
+                            {rubricObj.title} <span className="text-slate-400 text-lg font-medium">({rubricObj.max}分)</span>
+                        </h3>
+                        <div className="flex items-center space-x-3 bg-blue-50 px-4 py-2 rounded-xl border border-blue-200 w-full md:w-auto justify-between md:justify-start">
+                            <span className="text-base md:text-lg text-blue-900 font-bold">得分:</span>
+                            <div className="flex items-baseline">
+                                <input 
+                                    type="number" 
+                                    min="0" max={rubricObj.max}
+                                    value={scores[categoryKey]} 
+                                    onChange={(e) => handleScoreChange(categoryKey, e.target.value)}
+                                    className="w-16 text-center font-black text-2xl text-blue-700 bg-transparent border-b-2 border-blue-300 focus:outline-none focus:border-blue-700 transition-colors"
+                                />
+                                <span className="text-slate-500 font-medium ml-1">/{rubricObj.max}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        {rubricObj.items.map((item, index) => {
+                            const isSelected = selections[categoryKey] === index;
+                            return (
+                                <div 
+                                    key={index}
+                                    onClick={() => handleSelect(categoryKey, index, item.scores[item.scores.length - 1])}
+                                    className={`cursor-pointer rounded-xl p-4 transition-all duration-200 border-2 flex flex-col ${
+                                        isSelected 
+                                        ? 'border-blue-600 bg-blue-50 shadow-md ring-4 ring-blue-100 scale-[1.02]' 
+                                        : 'border-slate-200 hover:border-blue-400 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        {item.scores.map(s => (
+                                            <button
+                                                key={s}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSelect(categoryKey, index, s);
+                                                }}
+                                                className={`w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-sm md:text-base font-black transition-all ${
+                                                    isSelected && scores[categoryKey] === s 
+                                                    ? 'bg-blue-600 text-white shadow-lg scale-110' 
+                                                    : 'bg-white border-2 border-slate-300 text-slate-600 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400'
+                                                }`}
+                                            >
+                                                {s}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className={`font-bold text-lg mb-2 ${isSelected ? 'text-blue-800' : 'text-slate-700'}`}>
+                                        {item.label}
+                                    </div>
+                                    <div className={`text-sm leading-relaxed flex-grow ${isSelected ? 'text-blue-900/80 font-medium' : 'text-slate-500'}`}>
+                                        {item.desc}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+                    
+                    {/* Modal Dialogs */}
+                    {dialog.isOpen && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 no-print">
+                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all border border-slate-200">
+                                <div className={`p-10 ${dialog.isSuccess ? 'bg-green-50 text-center' : ''}`}>
+                                    {dialog.isSuccess && <div className="text-7xl mb-6">🎉</div>}
+                                    <h3 className={`font-black text-3xl mb-4 ${dialog.isSuccess ? 'text-green-800' : 'text-slate-900'}`}>
+                                        {dialog.title || '提示'}
+                                    </h3>
+                                    <p className={`leading-relaxed text-xl whitespace-pre-line ${dialog.isSuccess ? 'text-green-900 font-medium' : 'text-slate-600'}`}>
+                                        {dialog.message}
+                                    </p>
+                                </div>
+                                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center space-x-4">
+                                    {dialog.type === 'confirm' && (
+                                        <button 
+                                            onClick={() => setDialog({ ...dialog, isOpen: false })} 
+                                            className="px-8 py-4 text-slate-600 font-bold text-lg hover:bg-slate-200 rounded-xl transition-colors w-full"
+                                        >
+                                            取消
+                                        </button>
+                                    )}
+                                    <button 
+                                        onClick={() => {
+                                            const action = dialog.onConfirm;
+                                            setDialog(prev => ({ ...prev, isOpen: false, isSuccess: false }));
+                                            if (action) action();
+                                        }} 
+                                        className={`px-8 py-4 text-white font-black text-lg rounded-xl shadow-lg transition-colors w-full ${dialog.isSuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                    >
+                                        {dialog.type === 'confirm' ? (dialog.confirmText || '确定') : '我知道了'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Top Navigation & Info Bar */}
+                    <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xl shadow-md border-b border-slate-200 rounded-b-3xl p-4 lg:p-5 mb-8 flex flex-col xl:flex-row justify-between items-start xl:items-center no-print gap-4 transition-all">
+                        
+                        <div className="flex flex-col space-y-4 w-full xl:w-auto">
+                            {/* App Title and Stage Tabs */}
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <span className="text-2xl font-black bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent drop-shadow-sm whitespace-nowrap">雅德小学五年级华文写作</span>
+                                
+                                {/* Revision Stage Toggle Buttons */}
+                                <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                                    {['一改', '二改 (抽查)'].map((stage) => {
+                                        const cleanStage = stage.startsWith('二改') ? '二改' : '一改';
+                                        return (
+                                            <button
+                                                key={stage}
+                                                onClick={() => handleStageChange(cleanStage)}
+                                                className={`px-4 py-1.5 rounded-lg font-bold text-sm transition-all ${
+                                                    revisionStage === cleanStage 
+                                                    ? 'bg-blue-600 text-white shadow-inner'
+                                                    : 'text-slate-500 hover:text-slate-700'
+                                                }`}
+                                            >
+                                                {stage}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
+                                {/* 级任班 */}
+                                <div className="flex items-center space-x-1">
+                                    <span className="text-xs font-bold text-slate-500 uppercase">级任班:</span>
+                                    <select
+                                        value={selectedFormClass}
+                                        onChange={handleFormClassChange}
+                                        className="border-2 border-slate-200 rounded-xl px-3 py-2 bg-white focus:ring-4 focus:ring-blue-500/20 outline-none font-bold text-slate-800 cursor-pointer shadow-sm"
+                                    >
+                                        <option value="">- 选择 -</option>
+                                        {availableFormClasses.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 母语班 */}
+                                <div className="flex items-center space-x-1">
+                                    <span className="text-xs font-bold text-slate-500 uppercase">母语班:</span>
+                                    <select
+                                        value={student.mtl}
+                                        onChange={handleMTClassChange}
+                                        disabled={!selectedFormClass}
+                                        className="border-2 border-slate-200 rounded-xl px-3 py-2 bg-white focus:ring-4 focus:ring-blue-500/20 outline-none font-bold text-slate-800 cursor-pointer shadow-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="">- 选择 -</option>
+                                        {availableMTClasses.map(m => (
+                                            <option key={m} value={m}>{m}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 考生 */}
+                                <div className="flex items-center space-x-1">
+                                    <span className="text-xs font-bold text-slate-500 uppercase">考生:</span>
+                                    <select
+                                        value={student.name}
+                                        onChange={handleStudentSelect}
+                                        disabled={!student.mtl}
+                                        className="w-48 md:w-72 border-2 border-slate-200 rounded-xl px-3 py-2 bg-white focus:ring-4 focus:ring-blue-500/20 outline-none font-bold text-blue-700 shadow-sm cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="">- 选择 -</option>
+                                        {filteredStudents.map((s, i) => (
+                                            <option key={`${s.name}-${i}`} value={s.name}>
+                                                {s.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 4. 评卷老师 */}
+                                <div className="flex items-center space-x-1 md:border-l-2 md:border-slate-200 md:pl-3">
+                                    <span className="text-xs font-bold text-purple-600 uppercase">评卷老师 ({revisionStage}):</span>
+                                    <select 
+                                        value={currentExaminer}
+                                        onChange={handleExaminerChange}
+                                        className="border-2 border-purple-200 rounded-xl px-3 py-2 bg-purple-50 focus:ring-4 focus:ring-purple-500/20 outline-none font-bold text-purple-800 shadow-sm cursor-pointer"
+                                    >
+                                        <option value="">- 选择 -</option>
+                                        {examinersList.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Dynamic Live Score Banner */}
+                        <div className="flex items-center justify-end space-x-4 md:space-x-6 w-full xl:w-auto bg-white/50 xl:bg-transparent p-3 xl:p-0 rounded-2xl xl:rounded-none">
+                            <div className="text-center">
+                                <div className="text-xs text-slate-500 font-bold mb-1">内容</div>
+                                <div className="font-black text-xl text-indigo-600">{contentTotal}<span className="text-sm text-slate-400 font-medium">/{maxContent}</span></div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-xs text-slate-500 font-bold mb-1">语文</div>
+                                <div className="font-black text-xl text-indigo-600">{languageTotal}<span className="text-sm text-slate-400 font-medium">/{maxLanguage}</span></div>
+                            </div>
+                            <div className="text-center px-6 py-2 rounded-2xl shadow-md bg-blue-600 text-white">
+                                <div className="text-xs font-bold opacity-90 mb-1">{revisionStage}得分</div>
+                                <div className="font-black text-3xl leading-none">{grandTotal}<span className="text-sm font-medium opacity-80 ml-1">/{maxTotal}</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Marking Comparison & Final Score Card */}
+                    {student.name && (score1 !== undefined || score2 !== undefined) && (
+                        <div className="mb-8 no-print">
+                            <div className="p-6 rounded-3xl bg-white border-2 border-slate-200 shadow-sm">
+                                <h4 className="font-black text-slate-800 text-lg mb-3 flex items-center">
+                                    📊 批改比对与最终判定成绩 ({student.name})
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                                        <span className="text-xs font-bold text-slate-500 block">一改 ({record1?.marker || '未记录'})</span>
+                                        <span className="text-xl font-black text-slate-800">{score1 !== undefined ? `${record1.content}+${record1.language}=${score1}分` : '待评'}</span>
+                                    </div>
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                                        <span className="text-xs font-bold text-slate-500 block">二改 抽查 ({record2?.marker || (revisionStage === '二改' ? currentExaminer || '评估中' : '未记录')})</span>
+                                        <span className="text-xl font-black text-slate-800">
+                                            {revisionStage === '二改' ? `${contentTotal}+${languageTotal}=${grandTotal}分` : (score2 !== undefined ? `${record2.content}+${record2.language}=${score2}分` : '未抽查')}
+                                        </span>
+                                    </div>
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                                        <span className="text-xs font-bold text-slate-500 block">分差 / 跨等判定</span>
+                                        <span className="text-base font-black text-slate-700 block mt-1">
+                                            {scoreDiff !== null ? `分差: ${scoreDiff}分 ${isCrossBand ? '(跨等 ⚠️)' : '(未跨等)'}` : '-'}
+                                        </span>
+                                    </div>
+                                    <div className="p-3 rounded-2xl border border-emerald-300 bg-emerald-50 flex flex-col justify-center items-center">
+                                        <span className="text-xs font-bold text-emerald-700 block">最终判定依据</span>
+                                        <span className="text-sm font-black text-emerald-900 leading-tight mt-1">
+                                            {finalScoreResolution.source}
+                                        </span>
+                                        <span className="text-lg font-black text-emerald-800 mt-1">
+                                            {finalScoreResolution.content} + {finalScoreResolution.language} = {finalScoreResolution.total}分
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Print View */}
+                    <div className="print-only print-container">
+                        <div className="text-center mb-6 border-b-2 border-slate-200 pb-6">
+                            <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-wide">✍️ 雅德小学五年级华文写作反馈单 ✍️</h1>
+                            <div className="flex justify-center flex-wrap gap-6 text-lg text-slate-700 font-medium">
+                                <span>级任班：<strong className="text-slate-900 font-black">{student.class || "未选择"}</strong></span>
+                                <span>母语班：<strong className="text-slate-900 font-black">{student.mtl || "未选择"}</strong></span>
+                                <span>考生：<strong className="text-slate-900 font-black">{student.name || "未选择"}</strong></span>
+                                <span>评卷老师：<strong className="text-slate-900 font-black">{currentExaminer || "未选择"}</strong></span>
+                            </div>
+                        </div>
+                        
+                        <div className="flex justify-center items-center gap-4 mb-8">
+                            <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 w-36 text-center">
+                                <div className="text-slate-600 font-bold text-sm mb-1">内容 (Content)</div>
+                                <div className="text-2xl font-black text-slate-800">{finalScoreResolution.content} <span className="text-base font-normal text-slate-400">/ {maxContent}</span></div>
+                            </div>
+                            <div className="text-2xl text-slate-300 font-light">+</div>
+                            <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 w-36 text-center">
+                                <div className="text-slate-600 font-bold text-sm mb-1">语文 (Language)</div>
+                                <div className="text-2xl font-black text-slate-800">{finalScoreResolution.language} <span className="text-base font-normal text-slate-400">/ {maxLanguage}</span></div>
+                            </div>
+                            <div className="text-2xl text-slate-300 font-light">=</div>
+                            <div className="border-4 rounded-2xl p-5 w-44 text-center shadow-sm bg-emerald-50 border-emerald-200">
+                                <div className="font-bold text-sm mb-1 text-emerald-700">最终总分 (Final Score)</div>
+                                <div className="text-4xl font-black text-emerald-800">{finalScoreResolution.total} <span className="text-lg text-emerald-400">/ {maxTotal}</span></div>
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <h2 className="text-xl font-black text-slate-900 mb-4 flex items-center">
+                                <span className="w-8 h-8 rounded-full flex items-center justify-center mr-3 text-lg bg-blue-100 text-blue-700">💡</span> 
+                                老师评估评语：
+                            </h2>
+                            <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 text-lg text-slate-800 leading-loose font-medium text-justify whitespace-pre-wrap min-h-[150px]">
+                                {feedbackText || "老师还没有完成评分哦。"}
+                            </div>
+                        </div>
+                        
+                        <div className="text-center mt-10 text-slate-500 font-black text-lg tracking-widest">
+                            加油！修改是写作进步的阶梯！✍️
+                        </div>
+                    </div>
+
+                    {/* Interactive Rubrics Area */}
+                    <div className="no-print">
+                        <div className="mb-12">
+                            <h2 className="text-2xl font-black text-slate-800 mb-6 px-4 border-l-8 rounded-sm border-blue-600">
+                                第一部分：内容 ({maxContent}分)
+                            </h2>
+                            {renderRubricRow('content', currentRubrics.content)}
+                        </div>
+
+                        <div className="mb-12">
+                            <h2 className="text-2xl font-black text-slate-800 mb-6 px-4 border-l-8 rounded-sm border-indigo-600">
+                                第二部分：语文 ({maxLanguage}分)
+                            </h2>
+                            {renderRubricRow('language', currentRubrics.language)}
+                        </div>
+
+                        {/* Feedback Editor Area */}
+                        <div className="mt-12 p-6 md:p-8 rounded-3xl border-2 shadow-sm bg-blue-50/50 border-blue-100">
+                            <h3 className="font-black text-xl md:text-2xl mb-4 flex items-center text-blue-900">
+                                📝 综合评估评语预览 
+                                <span className="text-sm font-normal ml-3 px-3 py-1 rounded-full text-blue-600 bg-blue-100">
+                                    {(revisionStage === '二改' || record2) ? '(根据二改标准自动整合评语)' : '(点击下方框随意修改或调整内容)'}
+                                </span>
+                            </h3>
+                            <textarea 
+                                className="w-full h-48 md:h-64 p-6 rounded-2xl border-2 focus:ring-4 outline-none resize-none text-slate-800 text-lg leading-relaxed text-justify shadow-inner bg-white border-blue-200 focus:ring-blue-500/20 focus:border-blue-500"
+                                value={feedbackText}
+                                onChange={(e) => setFeedbackText(e.target.value)}
+                                placeholder="点击上方表格，这里会自动生成针对性的评语..."
+                            ></textarea>
+                            
+                            <div className="flex flex-col md:flex-row justify-between items-center mt-8 gap-4 pt-6 border-t border-slate-200/60">
+                                <button 
+                                    onClick={resetForm} 
+                                    className="flex items-center text-slate-600 bg-white hover:bg-slate-100 border-2 border-slate-200 font-bold text-base px-6 py-3 rounded-xl transition-all order-2 md:order-1 shadow-sm"
+                                >
+                                    🔄 清空重置 
+                                </button>
+                                
+                                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full md:w-auto order-1 md:order-2">
+                                    <button 
+                                        onClick={handlePrint}
+                                        className="justify-center bg-white border-2 border-slate-300 hover:border-slate-400 text-slate-800 px-6 py-3 rounded-xl font-bold text-base shadow-sm flex items-center transition-all"
+                                    >
+                                        🖨️ 打印/保存 PDF
+                                    </button>
+                                    <button 
+                                        onClick={() => handleSubmitGAS(false)}
+                                        disabled={submitStatus === 'loading'}
+                                        className={`justify-center text-white px-8 py-3 rounded-xl font-bold text-base shadow-md flex items-center transition-all transform hover:-translate-y-0.5 ${
+                                            submitStatus === 'loading' ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'
+                                        }`}
+                                    >
+                                        {submitStatus === 'loading' ? '☁️ 提交中...' : '☁️ 提交云端表格'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
