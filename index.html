@@ -844,6 +844,8 @@
                 </div>
             );
 
+            if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />;
+
             return (
                 <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
                     
@@ -896,9 +898,7 @@
                                 <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
                                     {['一改', '二改 (抽查)'].map((stage) => {
                                         const cleanStage = stage.startsWith('二改') ? '二改' : '一改';
-                                        if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />;
-
-            return (
+                                        return (
                                             <button
                                                 key={stage}
                                                 onClick={() => handleStageChange(cleanStage)}
