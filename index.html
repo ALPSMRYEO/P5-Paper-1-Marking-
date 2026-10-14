@@ -77,7 +77,8 @@
                     { level: 2, scores: [13, 14, 15, 16], label: "二（中上）", desc: "内容相当充实；内容绝大部分切合题旨；内容相当生动", feedback: "作文内容相当充实生动，绝大部分切合题旨，整体立意明确。" },
                     { level: 3, scores: [9, 10, 11, 12], label: "三（中）", desc: "内容还算充实；内容还算切合题旨；内容还算生动", feedback: "文章内容还算充实，基本切题。如果细节能描写得更生动，文章会更加引人入胜。" },
                     { level: 4, scores: [5, 6, 7, 8], label: "四（中下）", desc: "内容不足；内容不大切合题旨；内容空洞", feedback: "内容略显不足，部分情节不太切合题旨。下次尝试多加一些细节描写和心理活动，充实文章内容。" },
-                    { level: 5, scores: [1, 2, 3, 4], label: "五（下）", desc: "内容非常不足；内容不切合题旨；内容杂乱", feedback: "作文内容比较偏题或杂乱，缺乏主要情节。写文章前要先好好审题，列好大纲再动笔哦。" }
+                    { level: 5, scores: [1, 2, 3, 4], label: "五（下）", desc: "内容非常不足；内容不切合题旨；内容杂乱", feedback: "作文内容比较偏题或杂乱，缺乏主要情节。写文章前要先好好审题，列好大纲再动笔哦。" },
+                    { level: 6, scores: [0], label: "零分", desc: "未作答；没有任何内容。", feedback: "未作答，没有提供写作内容。" }
                 ]
             },
             language: {
@@ -88,7 +89,8 @@
                     { level: 2, scores: [13, 14, 15, 16], label: "二（中上）", desc: "语句绝大部分通顺，汉字及标点少许错误；句式有变化；词汇相当丰富；结构严谨，段落相当分明", feedback: "语句通顺自然，词汇相当丰富，结构分明。注意少许错别字和标点的规范使用。" },
                     { level: 3, scores: [9, 10, 11, 12], label: "三（中）", desc: "语句还算通顺，错别字及标点错误不少；句式变化少；词汇有限；结构还算完整", feedback: "句子基本通顺，结构完整。不过词汇量还需加强，写完后记得多检查错别字和标点符号。" },
                     { level: 4, scores: [5, 6, 7, 8], label: "四（中下）", desc: "语句欠通顺，错别字及标点错误多；句式无变化；词汇贫乏；结构不完整", feedback: "语句不够通顺，病句和错别字较多。平时多阅读优美范文，练习用正确的句子表达想法。" },
-                    { level: 5, scores: [1, 2, 3, 4], label: "五（下）", desc: "语句完全不通顺，错别字极多；句子结构不完整；词汇非常贫乏；结构杂乱无章", feedback: "表达上遇到较大困难，句子不完整且错别字多。建议先从写好每一个基础句子开始，加油！" }
+                    { level: 5, scores: [1, 2, 3, 4], label: "五（下）", desc: "语句完全不通顺，错别字极多；句子结构不完整；词汇非常贫乏；结构杂乱无章", feedback: "表达上遇到较大困难，句子不完整且错别字多。建议先从写好每一个基础句子开始，加油！" },
+                    { level: 6, scores: [0], label: "零分", desc: "未作答；没有任何文字表达。", feedback: "未作答，没有提供文字表达。" }
                 ]
             }
         };
@@ -295,7 +297,7 @@
             for (let item of items) {
                 if (item.scores.includes(score)) return item.level;
             }
-            return 5;
+            return score === 0 ? 6 : 5;
         };
 
         function PasswordGate({onUnlock}) {
@@ -800,7 +802,7 @@
                             </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                         {rubricObj.items.map((item, index) => {
                             const isSelected = selections[categoryKey] === index;
                             return (
